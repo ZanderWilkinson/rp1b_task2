@@ -80,7 +80,50 @@ The functions for part 2 can be viewed in task2_part2.py. They implement a multi
 ## Discussion + Worked Example 
 This discussion is structured linearly in the format of main.py, providing examples of important files which are generated as the pipeline runs and addresses insights into the performance / fuctionality of the pipeline. 
 
-1. Precision and Recall of Simulated Reads
+**1. Running Simulation**
+
+As the pipelines runs it generates mutations on both the E.Coli and NC genomes, these mutations (ground truth) are stored in CSV files (Ecoli / NC _Ground_Truth.csv). 100bp reads are then generated on both genomes, which are written to two FASTQ files (Ecoli / NC _mutated_reads.fastq), and these are used in a bcftools variant caller pipelines for single end reads. The precision and recall on both these VCFs are calculated using the equations below. 
+   
+<p align="center"> 
+
+<img width="204" height="155" alt="image" src="https://github.com/user-attachments/assets/9366ae6e-1776-4d3f-a56c-a70c5ff130eb" /> 
+  
+<img width="190" height="71" alt="image" src="https://github.com/user-attachments/assets/d62fbd73-5f39-4349-8943-d0d5c3584b01" />
+
+</p>
+
+**2. Precision and Recall**
+
+| Value | Definition | 
+| ----------- | ----------- |
+| True Positive (TP) | A true mutation that was correctly identified by the caller | 
+| False Positive (FP) | A variant called which is not a true mutation | 
+| False Negative (FN) | A true mutation that was missed by the caller | 
+
+Precison measures the quality of postive calls =  TP / (TP + FP)
+
+Recall measures the quantity of postive calls = TP / (TP + FN)
+
+From the worked example below we can see that there is a high percentage for both precision and recall on the two genomes. This is due to the use of perfect reads and high coverage, as most true variants are covered. There is some error introduced to the variant callers due to left-alignment, it reports an indel using an anchor base that is shifted too far to the right. This results in a simple indel being report as a shifted change (e.g. ATGT -> ATGTGGTG). This causes a discrepancy between the ground truth and VCF, in reality both precision and recall should be 100% if this alignment issue was fixed with hard coding the offsets. However, it is important to truthfully report on issues faced with variant callers. 
+
+
+<p align="center">  <img width="364" height="69" alt="image" src="https://github.com/user-attachments/assets/dce4379c-255a-489d-89c6-511c0de6a073" /> </p>
+
+
+**3. Multi-Caller Pipeline**
+
+Firstly, the multi-caller pipeline was ran on our simulated data by creating paired-end reads on the Ecoli genome. The precision and recall for all three VCFs was then scored, as shown below: 
+
+<p align="center"> <img width="346" height="80" alt="image" src="https://github.com/user-attachments/assets/1d722916-f84d-4687-9cc6-70ea2aa0a8d7" />  </p>
+
+The Merged VCF focuses on maximising the number of detected variants (Recall) by combining both VCFs from BCF and Snippy. It recall is consistenly higher than the two individual callers, confirming the merging processes ability to capture all true variants found by either tool. However, during the merge, False Postive calls are inherented from either caller resulting in low precision, in this case the BCF low precision. 
+
+Secondly, the multi-caller pipeline was then run on a real pair of Ecoli reads. Since their is no ground truth, precision and recall can not be calculated. Therefore, a trust-score system was used to assign confidence ratings and quality scores. 
+
+
+
+
+## Tview Evaluation
 
 
 
