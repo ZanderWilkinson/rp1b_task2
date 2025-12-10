@@ -1,8 +1,8 @@
 # RP1b Task2: Variant Calling Pipeline
-This repository contains all the three scripts (task2_part1.py, task2_part2.py, main.py) and files, needed for the RP1b Task 2 assignment. Aimed at exploring genome mutation simulation, perfect read simulation and multi-caller pipelines and validation. This README file contains the complete guide to run these scripts, and includes a discussion of results with a worked example.
+This repository contains all the three scripts (task2_part1.py, task2_part2.py, main.py) and files, needed for the RP1b Task 2 assignment (two real Ecoli FASTQ files too large for upload, found in CLIMB mentioned below). Aimed at exploring genome mutation simulation, perfect read simulation and multi-caller pipelines and validation. This README file contains the complete guide to run these scripts, and includes a discussion of results with a worked example.
 
 ## Setup 
-This section highlights the dependencies, tools and enviroment required to run the scripts within this project. The workflow of the pipeline is directed by the main Python script, main.py, which chronologically executes functions, and BASH scripts within Python using the subprocess module. 
+This section highlights the dependencies, tools and environment required to run the scripts within this project. The workflow of the pipeline is directed by the main Python script, main.py, which chronologically executes functions, and BASH scripts within Python using the subprocess module. 
 
 ### Conda Environment 
 This codebase was run in a Conda virutal enviroment within CLIMB computing (path: /shared-team/people/zander/Task2/), due to issues with compatability between bioinformatics tools, specific versions are needed to run these scripts. In the BASH terminal in CLIMB, use the following code to create and activate the necessary environment:
@@ -78,7 +78,7 @@ The functions for part 2 can be viewed in task2_part2.py. They implement a multi
 
 
 ## Discussion + Worked Example 
-This discussion is structured linearly in the format of main.py, providing examples of important files which are generated as the pipeline runs and addresses insights into the performance / fuctionality of the pipeline. 
+This discussion is structured linearly in the format of main.py, providing examples of important files which are generated as the pipeline runs and addresses insights into the performance / functionality of the pipeline. 
 
 **1. Running Simulation**
 
@@ -104,7 +104,7 @@ Precison measures the quality of postive calls =  TP / (TP + FP)
 
 Recall measures the quantity of postive calls = TP / (TP + FN)
 
-From the worked example below we can see that there is a high percentage for both precision and recall on the two genomes. This is due to the use of perfect reads and high coverage, as most true variants are covered. There is some error introduced to the variant callers due to left-alignment, it reports an indel using an anchor base that is shifted too far to the right. This results in a simple indel being report as a shifted change (e.g. ATGT -> ATGTGGTG). This causes a discrepancy between the ground truth and VCF, in reality both precision and recall should be 100% if this alignment issue was fixed with hard coding the offsets. However, it is important to truthfully report on issues faced with variant callers. 
+From the worked example below we can see that there is a high percentage for both precision and recall on the two genomes. This is due to the use of perfect reads and high coverage, as most true variants are covered. There is some error introduced to the variant callers due to left-alignment, where it reports an indel using an anchor base that is shifted too far to the right. This results in a simple indel being reported as a shifted change (e.g. ATGT -> ATGTGGTG). This causes a discrepancy between the ground truth and VCF, in reality both precision and recall should be 100% if this alignment issue was fixed with hard coding the offsets. However, it is important to truthfully report on issues faced with variant callers. 
 
 
 <p align="center">  <img width="364" height="69" alt="image" src="https://github.com/user-attachments/assets/dce4379c-255a-489d-89c6-511c0de6a073" /> </p>
@@ -118,12 +118,27 @@ Firstly, the multi-caller pipeline was ran on our simulated data by creating pai
 
 The Merged VCF focuses on maximising the number of detected variants (Recall) by combining both VCFs from BCF and Snippy. It recall is consistenly higher than the two individual callers, confirming the merging processes ability to capture all true variants found by either tool. However, during the merge, False Postive calls are inherented from either caller resulting in low precision, in this case the BCF low precision. 
 
-Secondly, the multi-caller pipeline was then run on a real pair of Ecoli reads. Since their is no ground truth, precision and recall can not be calculated. Therefore, a trust-score system was used to assign confidence ratings and quality scores. 
+Secondly, the multi-caller pipeline was then run on a real pair of Ecoli reads. Since their is no ground truth, precision and recall cannot be calculated. Therefore, a trust-score system was used to assign confidence ratings and quality scores. An example of this is below, but the full report can be viewed in the CSV file: 
 
+| Trust Score | Meaning | 
+| ----------- | ----------- |
+| 100 | Consensus between callers, high confidence call | 
+| 50 | Either one of the callers, medium confidence call | 
 
+A summary of total variants called is then printed to the terminal, including the number of high/medium scores. From this example we can see the majority of variants are assigned a high confidence score, meaning both callers agreed on the exact variant and position. As previously seen, snippy seems to be much more precise as it uses an optimised calling approach. Due to this, it is likely that the medium confidence calls are false postives inherited from the less precise BCF VCfs. 
+
+<p align="center">  <img width="303" height="68" alt="image" src="https://github.com/user-attachments/assets/25e32f27-459a-41ba-8964-a9c1154e98bb" />  </p>
 
 
 ## Tview Evaluation
+To externally validate the trust score, a manual inspection of variants can be done in a genome viewer (tview). Run the following command in the virtual enviroment. To visually confirm a trust score of 100, we should see an agreement of reads showing the variant base, with high quality score and little to no noise. A trust score of 50 may be viewed with a mix of signals in the reads, including low coverage, low quality or disagreeing reads. In the example below we can see that between position 58-59 the alignment switches to a C, and virtually every read, aligned to this position, agree with the call. This visualisation is in agreement with our CSV table which states this variant is a high trust call. Furthermore, in this image around postion 47 their is a missing single base insertion, as well as discrepancies in quality scores, this was indicated in our trust score CSV detecting it as a medium trust variant.
+
+```samtools tview real_bcftools.sorted.bam EcoliK12-MG1655.fasta```
+
+<img width="396" height="1007" alt="image" src="https://github.com/user-attachments/assets/0d6cdf2c-8799-4fb0-b5b1-fc5c9b3a6b6a" />
+
+
+
 
 
 
